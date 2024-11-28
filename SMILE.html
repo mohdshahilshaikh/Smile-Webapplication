@@ -34,6 +34,7 @@
         h1 {
             color: #2c3e50;
             margin-bottom: 20px;
+            
         }
 
         .camera-section {
@@ -76,7 +77,10 @@
         }
 
         .btn:hover {
-            background-color: #2980b9;
+            color: #111;
+            background: #3498db;
+            box-shadow: 0 0 50px #0099ff;
+            
         }
 
         .btn:disabled {
@@ -196,6 +200,7 @@
                     // Enable capture button
                     this.captureButton.disabled = false;
                     this.currentCamera = cameraType;
+                    this.captureButton.enabled = true;
 
                 } catch (error) {
                     console.error('Camera access error:', error);
@@ -222,6 +227,8 @@
 
                 // Analyze smile
                 this.analyzeSmile(imageDataUrl);
+                this.analyzeSmile(imageUpload);
+                this.analyzeSmile(imageData);
             }
 
             handleFileUpload(event) {

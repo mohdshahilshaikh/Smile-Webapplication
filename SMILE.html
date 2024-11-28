@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smile Happiness Tracker - Camera Edition</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+
+        .container {
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .camera-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        #videoElement {
+            max-width: 100%;
+            border-radius: 10px;
+            background-color: #000;
+            display: none;
+        }
+
+        #capturedImage {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+        }
+
+        .btn:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        #happinessResult {
+            font-size: 24px;
+            color: #27ae60;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        #smileDetails {
+            background-color: #f1f8ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .loading {
+            display: none;
+            color: #3498db;
+            font-size: 18px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📸 Smile Happiness Tracker</h1>
+
+        <div class="camera-section">
+            <video id="videoElement" playsinline autoplay></video>
+            <img id="capturedImage" src="#" alt="Captured Image">
+        </div>
+
+        <div class="btn-group">
+            <button id="startFrontCamera" class="btn">Front Camera</button>
+            <button id="startBackCamera" class="btn">Back Camera</button>
+            <button id="captureButton" class="btn" disabled>Capture Photo</button>
+        </div>
+
+        <input type="file" id="imageUpload" accept="image/*" style="display:none;">
+        
+        <label for="imageUpload" class="btn">
+            Upload Photo
+        </label>
+
+        <div id="loading" class="loading">
+            Analyzing your smile... 😃
+        </div>
+        
+        <div id="happinessResult"></div>
+        <div id="smileDetails"></div>
+    </div>
+
+    <script>
+        class SmileHappinessTracker {
+            constructor() {
+                // Camera elements
+                this.videoElement = document.getElementById('videoElement');
+                this.capturedImage = document.getElementById('capturedImage');
+                
+                // Buttons
+                this.startFrontCameraBtn = document.getElementById('startFrontCamera');
+                this.startBackCameraBtn = document.getElementById('startBackCamera');
+                this.captureButton = document.getElementById('captureButton');
+                
+                // File upload
+                this.imageUpload = document.getElementById('imageUpload');
+                
+                // Result elements
+                this.happinessResult = document.getElementById('happinessResult');
+                this.smileDetails = document.getElementById('smileDetails');
+                this.loadingIndicator = document.getElementById('loading');
+
+                // Stream and track variables
+                this.stream = null;
+                this.currentCamera = null;
+
+                this.initEventListeners();
+            }
+
+            initEventListeners() {
+                // Camera buttons
+                this.startFrontCameraBtn.addEventListener('click', () => this.startCamera('user'));
+                this.startBackCameraBtn.addEventListener('click', () => this.startCamera('environment'));
+                
+                // Capture button
+                this.captureButton.addEventListener('click', () => this.capturePhoto());
+                
+                // File upload
+                this.imageUpload.addEventListener('change', (e) => this.handleFileUpload(e));
+            }
+
+            async startCamera(cameraType) {
+                // Stop existing stream if any
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                }
+
+                try {
+                    // Request camera access
+                    this.stream = await navigator.mediaDevices.getUserMedia({
+                        video: { 
+                            facingMode: cameraType 
+                        }
+                    });
+
+                    // Set video source and show video
+                    this.videoElement.srcObject = this.stream;
+                    this.videoElement.style.display = 'block';
+                    this.capturedImage.style.display = 'none';
+
+                    // Enable capture button
+                    this.captureButton.disabled = false;
+                    this.currentCamera = cameraType;
+
+                } catch (error) {
+                    console.error('Camera access error:', error);
+                    alert('Unable to access camera. Please check permissions.');
+                }
+            }
+
+            capturePhoto() {
+                // Create canvas to capture photo
+                const canvas = document.createElement('canvas');
+                canvas.width = this.videoElement.videoWidth;
+                canvas.height = this.videoElement.videoHeight;
+                
+                const context = canvas.getContext('2d');
+                context.drawImage(this.videoElement, 0, 0);
+
+                // Convert canvas to image
+                const imageDataUrl = canvas.toDataURL('image/jpeg');
+                
+                // Display captured image
+                this.capturedImage.src = imageDataUrl;
+                this.capturedImage.style.display = 'block';
+                this.videoElement.style.display = 'none';
+
+                // Analyze smile
+                this.analyzeSmile(imageDataUrl);
+            }
+
+            handleFileUpload(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = (e) => {
+                        this.capturedImage.src = e.target.result;
+                        this.capturedImage.style.display = 'block';
+                        this.videoElement.style.display = 'none';
+                        
+                        this.analyzeSmile(e.target.result);
+                    };
+                    
+                    reader.readAsDataURL(file);
+                }
+            }
+
+            analyzeSmile(imageData) {
+                // Clear previous results
+                this.happinessResult.innerHTML = '';
+                this.smileDetails.innerHTML = '';
+                
+                // Show loading
+                this.loadingIndicator.style.display = 'block';
+
+                // Simulate smile analysis
+                setTimeout(() => {
+                    const analysisResult = this.calculateSmileScore(imageData);
+                    this.displayResults(analysisResult);
+                }, 2000);
+            }
+
+            calculateSmileScore(imageData) {
+                // Simulated smile analysis algorithm
+                const factors = [
+                    { name: "Smile Width", maxScore: 20, score: Math.floor(Math.random() * 20) },
+                    { name: "Eye Crinkle", maxScore: 15, score: Math.floor(Math.random() * 15) },
+                    { name: "Teeth Visibility", maxScore: 15, score: Math.floor(Math.random() * 15) },
+                    { name: "Symmetry", maxScore: 10, score: Math.floor(Math.random() * 10) },
+                    { name: "Genuine Emotion", maxScore: 20, score: Math.floor(Math.random() * 20) }
+                ];
+
+                const totalScore = factors.reduce((sum, factor) => sum + factor.score, 0);
+                const maxPossibleScore = factors.reduce((sum, factor) => sum + factor.maxScore, 0);
+
+                return {
+                    totalScore,
+                    maxPossibleScore,
+                    factors
+                };
+            }
+
+            displayResults(result) {
+                // Hide loading
+                this.loadingIndicator.style.display = 'none';
+
+                // Display total happiness score
+                this.happinessResult.innerHTML = `
+                    Your Happiness Score: ${result.totalScore}/${result.maxPossibleScore} 🌟
+                `;
+
+                // Display detailed smile breakdown
+                this.smileDetails.innerHTML = `
+                    <h3>Smile Analysis Breakdown</h3>
+                    ${result.factors.map(factor => `
+                        <p>
+                            ${factor.name}: 
+                            ${factor.score}/${factor.maxScore} points
+                        </p>
+                    `).join('')}
+                `;
+            }
+        }
+
+        // Initialize the Smile Happiness Tracker
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check if browser supports getUserMedia
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                new SmileHappinessTracker();
+            } else {
+                alert('Your browser does not support camera access');
+            }
+        });
+    </script>
+</body>
+</html>
